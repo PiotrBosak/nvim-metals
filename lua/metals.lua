@@ -415,8 +415,52 @@ M.run_scalafix = function()
   execute_command({ command = "metals.scalafix-run", arguments = { text_doc_position } })
 end
 
+local function make_lsp_position(row1, col1, row2, col2)
+  -- Note: vim's lines are 1-indexed, but LSP's are 0-indexed
+  return {
+    ["start"] = {
+      line = row1 - 1,
+      character = col1,
+    },
+    ["end"] = {
+      line = row2 - 1,
+      character = col2,
+    },
+  }
+end
+
+local function get_opts()
+  local params = vim.lsp.util.make_range_params()
+  params.position = get_visual_selected_range()
+  params.range = nil
+  return params
+end
+
+local function get_visual_selected_range()
+  -- Taken from https://github.com/neovim/neovim/pull/13896#issuecomment-774680224
+  local p1 = vim.fn.getpos("v")
+  local row1 = p1[2]
+  local col1 = p1[3]
+  local p2 = vim.api.nvim_win_get_cursor(0)
+  local row2 = p2[1]
+  local col2 = p2[2]
+
+  if row1 < row2 then
+    return make_lsp_position(row1, col1, row2, col2)
+  elseif row2 < row1 then
+    return make_lsp_position(row2, col2, row1, col1)
+  end
+
+  return make_lsp_position(
+    row1,
+    math.min(col1, col2),
+    row1,
+    math.max(col1, col2)
+  )
+end
+
 M.type_of_range = function()
-  vim.lsp.buf_request(0, "textDocument/hover", vim.lsp.util.make_given_range_params())
+  vim.lsp.buf_request(0, "textDocument/hover", get_opts())
 end
 
 -- Since we want metals to be the entrypoint for everything, just for ensure that it's
