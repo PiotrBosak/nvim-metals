@@ -415,6 +415,7 @@ M.run_scalafix = function()
   execute_command({ command = "metals.scalafix-run", arguments = { text_doc_position } })
 end
 
+-- Converts a tuple of range coordinates into LSP's position argument
 local function make_lsp_position(row1, col1, row2, col2)
   -- Note: vim's lines are 1-indexed, but LSP's are 0-indexed
   return {
@@ -427,13 +428,6 @@ local function make_lsp_position(row1, col1, row2, col2)
       character = col2,
     },
   }
-end
-
-local function get_opts()
-  local params = vim.lsp.util.make_range_params()
-  params.position = get_visual_selected_range()
-  params.range = nil
-  return params
 end
 
 local function get_visual_selected_range()
@@ -457,6 +451,13 @@ local function get_visual_selected_range()
     row1,
     math.max(col1, col2)
   )
+end
+
+local function get_opts()
+  local params = vim.lsp.util.make_range_params()
+  params.position = get_visual_selected_range()
+  params.range = nil
+  return params
 end
 
 M.type_of_range = function()
